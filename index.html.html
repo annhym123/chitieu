@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Chi Tiêu Cá Nhân</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Be Vietnam Pro', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- Header Navbar -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+                    <i class="fa-solid fa-wallet text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-900 dark:text-white">SmartMoney</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Quản Lý Chi Tiêu Cá Nhân</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Theme Toggle Button -->
+                <button id="themeToggleBtn" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center" title="Chuyển chế độ sáng/tối">
+                    <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
+                </button>
+                
+                <!-- Export/Import Actions -->
+                <div class="relative group">
+                    <button class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all">
+                        <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 hidden group-hover:block z-50">
+                        <button onclick="exportData()" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-file-export text-sky-500"></i> Xuất dữ liệu (JSON)
+                        </button>
+                        <button onclick="document.getElementById('importFileInput').click()" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-file-import text-emerald-500"></i> Nhập dữ liệu
+                        </button>
+                        <input type="file" id="importFileInput" class="hidden" accept=".json" onchange="importData(event)">
+                        <hr class="my-1 border-slate-100 dark:border-slate-700">
+                        <button onclick="resetData()" class="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i> Đặt lại mặc định
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Time Filter Toolbar -->
+        <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days text-sky-500 text-lg"></i>
+                <span class="font-semibold text-sm text-slate-700 dark:text-slate-200">Thời gian xem:</span>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl w-full sm:w-auto">
+                <button onclick="setTimeFilter('today')" id="filter-today" class="filter-tab flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    1 Ngày (Hôm nay)
+                </button>
+                <button onclick="setTimeFilter('month')" id="filter-month" class="filter-tab flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm">
+                    1 Tháng này
+                </button>
+                <button onclick="setTimeFilter('year')" id="filter-year" class="filter-tab flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    1 Năm nay
+                </button>
+                <button onclick="setTimeFilter('all')" id="filter-all" class="filter-tab flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    Tất cả
+                </button>
+            </div>
+        </section>
+
+        <!-- Financial Metrics Overview Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Total Income Card -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700/80 shadow-sm flex items-center justify-between relative overflow-hidden group">
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500 rounded-l-2xl"></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Total Income (Tiền Đầu Vào)
+                    </p>
+                    <h3 id="statIncome" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">0 ₫</h3>
+                    <p id="statIncomeCount" class="text-xs text-slate-400 mt-1">0 khoản thu</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-arrow-down-left"></i>
+                </div>
+            </div>
+
+            <!-- Total Expense Card -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700/80 shadow-sm flex items-center justify-between relative overflow-hidden group">
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500 rounded-l-2xl"></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span> Total Expense (Tiền Đầu Ra)
+                    </p>
+                    <h3 id="statExpense" class="text-2xl font-bold text-rose-600 dark:text-rose-400">0 ₫</h3>
+                    <p id="statExpenseCount" class="text-xs text-slate-400 mt-1">0 khoản chi</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-arrow-up-right"></i>
+                </div>
+            </div>
+
+            <!-- Net Balance Card -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700/80 shadow-sm flex items-center justify-between relative overflow-hidden group">
+                <div id="balanceBar" class="absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500 rounded-l-2xl"></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-sky-500 inline-block"></span> Net Balance (Số Dư)
+                    </p>
+                    <h3 id="statBalance" class="text-2xl font-bold text-sky-600 dark:text-sky-400">0 ₫</h3>
+                    <p id="statSavingsRate" class="text-xs text-slate-400 mt-1">Tỷ lệ tiết kiệm: 0%</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/40 text-sky-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Form Section & Quick Budget -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Transaction Input Form -->
+            <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-sky-500"></i> Nhập Giao Dịch Mới
+                    </h2>
+                    <div class="flex items-center bg-slate-100 dark:bg-slate-700 p-1 rounded-xl text-xs font-semibold">
+                        <button type="button" id="btnTypeExpense" onclick="setFormType('expense')" class="px-3 py-1.5 rounded-lg bg-rose-500 text-white transition-all shadow-sm">
+                            <i class="fa-solid fa-minus-circle mr-1"></i> Chi Tiêu (Đầu ra)
+                        </button>
+                        <button type="button" id="btnTypeIncome" onclick="setFormType('income')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 transition-all">
+                            <i class="fa-solid fa-plus-circle mr-1"></i> Thu Nhập (Đầu vào)
+                        </button>
+                    </div>
+                </div>
+
+                <form id="transactionForm" onsubmit="handleAddTransaction(event)" class="space-y-4">
+                    <input type="hidden" id="transType" value="expense">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Amount Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Số tiền (VNĐ) <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <input type="number" id="transAmount" required min="1" step="any" placeholder="Ví dụ: 50000" class="w-full pl-3 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                                <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-400">₫</span>
+                            </div>
+                        </div>
+
+                        <!-- Date Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Ngày thực hiện <span class="text-rose-500">*</span></label>
+                            <input type="date" id="transDate" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Category Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Danh mục <span class="text-rose-500">*</span></label>
+                            <select id="transCategory" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Note / Description -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Ghi chú / Mô tả</label>
+                            <input type="text" id="transNote" placeholder="Ví dụ: Ăn trưa văn phòng..." class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-sky-600/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Lưu Giao Dịch
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Monthly Budget Widget -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-bullseye text-indigo-500"></i> Hạn Mức Chi Tháng
+                        </h2>
+                        <button onclick="promptEditBudget()" class="text-xs text-sky-600 dark:text-sky-400 font-medium hover:underline">Sửa hạn mức</button>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Đặt ngân sách chi tiêu hàng tháng để kiểm soát dòng tiền hiệu quả.</p>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-baseline">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Đã chi / Hạn mức:</span>
+                            <span id="budgetText" class="text-xs font-bold text-slate-800 dark:text-slate-200">0 ₫ / 0 ₫</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden">
+                            <div id="budgetProgressBar" class="h-full bg-indigo-500 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <p id="budgetStatus" class="text-xs font-medium text-slate-500 dark:text-slate-400 text-right">0% hạn mức</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                        <i class="fa-solid fa-lightbulb text-sm"></i>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300">
+                        Mẹo: Đặt quy tắc chi tiêu 50-30-20 (Chi thiết yếu 50%, Cá nhân 30%, Tiết kiệm 20%).
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Visual Analytics Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Expense Category Doughnut Chart -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-sky-500"></i> Phân Phối Chi Tiêu Theo Danh Mục
+                </h3>
+                <div class="relative h-64 flex items-center justify-center">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Income vs Expense Bar Chart -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-column text-indigo-500"></i> Biểu Đồ Thu Nhập vs Chi Tiêu
+                </h3>
+                <div class="relative h-64 flex items-center justify-center">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transactions History Table -->
+        <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-emerald-500"></i> Lịch Sử Giao Dịch
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Danh sách thu nhập và chi tiêu ghi nhận</p>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <!-- Search input -->
+                    <div class="relative flex-1 sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                        <input type="text" id="searchInput" oninput="renderApp()" placeholder="Tìm theo ghi chú..." class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/70 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 text-xs font-semibold border-b border-slate-100 dark:border-slate-700">
+                            <th class="py-3 px-4">Loại</th>
+                            <th class="py-3 px-4">Danh mục</th>
+                            <th class="py-3 px-4">Ghi chú</th>
+                            <th class="py-3 px-4">Ngày</th>
+                            <th class="py-3 px-4 text-right">Số tiền</th>
+                            <th class="py-3 px-4 text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionList" class="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty state element -->
+            <div id="emptyState" class="hidden p-8 text-center text-slate-400">
+                <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
+                <p class="text-sm font-medium">Chưa có giao dịch nào trong khoảng thời gian này.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Modal Dialog (for budget edit & confirmation alerts) -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-slate-100 dark:border-slate-700 scale-95 transition-transform duration-200" id="modalContainer">
+            <h3 id="modalTitle" class="text-lg font-bold text-slate-800 dark:text-white mb-2">Thông báo</h3>
+            <div id="modalBody" class="text-sm text-slate-600 dark:text-slate-300 mb-6 space-y-3">
+                <!-- Content injected via JS -->
+            </div>
+            <div id="modalActions" class="flex justify-end gap-3">
+                <!-- Action buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Master Categories
+        const EXPENSE_CATEGORIES = [
+            { id: 'food', name: 'Ăn uống', icon: 'fa-utensils', color: '#f43f5e' },
+            { id: 'transport', name: 'Di chuyển', icon: 'fa-car', color: '#0ea5e9' },
+            { id: 'shopping', name: 'Mua sắm', icon: 'fa-bag-shopping', color: '#ec4899' },
+            { id: 'bills', name: 'Hóa đơn & Tiện ích', icon: 'fa-receipt', color: '#f59e0b' },
+            { id: 'entertainment', name: 'Giải trí', icon: 'fa-gamepad', color: '#8b5cf6' },
+            { id: 'health', name: 'Sức khỏe', icon: 'fa-heart-pulse', color: '#10b981' },
+            { id: 'other_exp', name: 'Khác (Chi)', icon: 'fa-ellipsis', color: '#64748b' }
+        ];
+
+        const INCOME_CATEGORIES = [
+            { id: 'salary', name: 'Lương cố định', icon: 'fa-money-bill-wave', color: '#10b981' },
+            { id: 'bonus', name: 'Thưởng & Phụ cấp', icon: 'fa-gift', color: '#06b6d4' },
+            { id: 'investment', name: 'Đầu tư & Lãi', icon: 'fa-chart-line', color: '#6366f1' },
+            { id: 'freelance', name: 'Nghề tay trái', icon: 'fa-laptop-code', color: '#8b5cf6' },
+            { id: 'other_inc', name: 'Khác (Thu)', icon: 'fa-wallet', color: '#3b82f6' }
+        ];
+
+        // Default initial data for demo
+        const INITIAL_TRANSACTIONS = [
+            { id: '1', type: 'income', amount: 20000000, category: 'salary', note: 'Nhận lương tháng này', date: getFormattedDate(0) },
+            { id: '2', type: 'expense', amount: 150000, category: 'food', note: 'Ăn trưa & café', date: getFormattedDate(0) },
+            { id: '3', type: 'expense', amount: 1200000, category: 'shopping', note: 'Mua quần áo mới', date: getFormattedDate(-2) },
+            { id: '4', type: 'expense', amount: 800000, category: 'bills', note: 'Tiền điện nước tháng', date: getFormattedDate(-5) },
+            { id: '5', type: 'income', amount: 2500000, category: 'freelance', note: 'Dự án website nhỏ', date: getFormattedDate(-10) }
+        ];
+
+        // App State
+        let transactions = JSON.parse(localStorage.getItem('smart_money_trans')) || INITIAL_TRANSACTIONS;
+        let monthlyBudget = parseFloat(localStorage.getItem('smart_money_budget')) || 10000000;
+        let currentTimeFilter = 'month'; // 'today', 'month', 'year', 'all'
+        let currentType = 'expense';
+        let categoryChart = null;
+        let trendChart = null;
+
+        // Helper to format date relative to today
+        function getFormattedDate(offsetDays = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Initialize App
+        window.onload = function() {
+            initTheme();
+            setDefaultFormDate();
+            populateCategorySelect();
+            renderApp();
+        };
+
+        // Theme Switcher Logic
+        function initTheme() {
+            const isDark = localStorage.getItem('smart_money_theme') === 'dark' || 
+                (!('smart_money_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-sun text-amber-400';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-moon text-slate-600';
+            }
+
+            document.getElementById('themeToggleBtn').addEventListener('click', () => {
+                const isCurrentlyDark = document.documentElement.classList.contains('dark');
+                if (isCurrentlyDark) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('smart_money_theme', 'light');
+                    document.getElementById('themeIcon').className = 'fa-solid fa-moon text-slate-600';
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('smart_money_theme', 'dark');
+                    document.getElementById('themeIcon').className = 'fa-solid fa-sun text-amber-400';
+                }
+                renderCharts(); // Re-render charts with correct text colors
+            });
+        }
+
+        // Set form default date to today
+        function setDefaultFormDate() {
+            document.getElementById('transDate').value = getFormattedDate(0);
+        }
+
+        // Switch Transaction Type (Income vs Expense)
+        function setFormType(type) {
+            currentType = type;
+            document.getElementById('transType').value = type;
+
+            const btnExpense = document.getElementById('btnTypeExpense');
+            const btnIncome = document.getElementById('btnTypeIncome');
+
+            if (type === 'expense') {
+                btnExpense.className = 'px-3 py-1.5 rounded-lg bg-rose-500 text-white transition-all shadow-sm';
+                btnIncome.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 transition-all';
+            } else {
+                btnIncome.className = 'px-3 py-1.5 rounded-lg bg-emerald-500 text-white transition-all shadow-sm';
+                btnExpense.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 transition-all';
+            }
+
+            populateCategorySelect();
+        }
+
+        // Populate Category dropdown dynamically
+        function populateCategorySelect() {
+            const select = document.getElementById('transCategory');
+            select.innerHTML = '';
+
+            const categories = currentType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // Filter Transactions by selected Timeframe
+        function getFilteredTransactions() {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            const query = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
+
+            return transactions.filter(t => {
+                const tDate = new Date(t.date);
+                let matchesTime = false;
+
+                if (currentTimeFilter === 'today') {
+                    matchesTime = t.date === todayStr;
+                } else if (currentTimeFilter === 'month') {
+                    matchesTime = tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+                } else if (currentTimeFilter === 'year') {
+                    matchesTime = tDate.getFullYear() === currentYear;
+                } else { // 'all'
+                    matchesTime = true;
+                }
+
+                const matchesSearch = !query || (t.note && t.note.toLowerCase().includes(query)) || getCategoryInfo(t.category).name.toLowerCase().includes(query);
+
+                return matchesTime && matchesSearch;
+            });
+        }
+
+        // Format Currency Helper (VND)
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        }
+
+        // Helper to get Category Metadata
+        function getCategoryInfo(catId) {
+            const allCats = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES];
+            return allCats.find(c => c.id === catId) || { name: 'Chưa phân loại', icon: 'fa-circle-question', color: '#94a3b8' };
+        }
+
+        // Set active Time Filter tab
+        function setTimeFilter(filter) {
+            currentTimeFilter = filter;
+            ['today', 'month', 'year', 'all'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filter) {
+                    btn.className = 'filter-tab flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm';
+                } else {
+                    btn.className = 'filter-tab flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+                }
+            });
+            renderApp();
+        }
+
+        // Master Render Function
+        function renderApp() {
+            const filtered = getFilteredTransactions();
+
+            // Calculate Totals
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let incomeCount = 0;
+            let expenseCount = 0;
+
+            filtered.forEach(t => {
+                if (t.type === 'income') {
+                    totalIncome += parseFloat(t.amount);
+                    incomeCount++;
+                } else {
+                    totalExpense += parseFloat(t.amount);
+                    expenseCount++;
+                }
+            });
+
+            const netBalance = totalIncome - totalExpense;
+
+            // Render Metrics
+            document.getElementById('statIncome').textContent = formatVND(totalIncome);
+            document.getElementById('statIncomeCount').textContent = `${incomeCount} khoản thu`;
+
+            document.getElementById('statExpense').textContent = formatVND(totalExpense);
+            document.getElementById('statExpenseCount').textContent = `${expenseCount} khoản chi`;
+
+            document.getElementById('statBalance').textContent = formatVND(netBalance);
+            
+            const savingsRate = totalIncome > 0 ? Math.max(0, Math.round((netBalance / totalIncome) * 100)) : 0;
+            document.getElementById('statSavingsRate').textContent = `Tỷ lệ tiết kiệm: ${savingsRate}%`;
+
+            // Style Net Balance color
+            const balanceEl = document.getElementById('statBalance');
+            const balanceBar = document.getElementById('balanceBar');
+            if (netBalance >= 0) {
+                balanceEl.className = 'text-2xl font-bold text-sky-600 dark:text-sky-400';
+                balanceBar.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500 rounded-l-2xl';
+            } else {
+                balanceEl.className = 'text-2xl font-bold text-rose-600 dark:text-rose-400';
+                balanceBar.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500 rounded-l-2xl';
+            }
+
+            // Render Monthly Budget Tracker
+            renderBudget(totalExpense);
+
+            // Render History Table
+            renderTransactionTable(filtered);
+
+            // Render Charts
+            renderCharts(filtered);
+        }
+
+        // Render Monthly Budget Progress Bar
+        function renderBudget(currentMonthExpense) {
+            // Find expense for current calendar month specifically for budget check
+            const now = new Date();
+            const thisMonthExpense = transactions
+                .filter(t => t.type === 'expense' && new Date(t.date).getMonth() === now.getMonth() && new Date(t.date).getFullYear() === now.getFullYear())
+                .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+            document.getElementById('budgetText').textContent = `${formatVND(thisMonthExpense)} / ${formatVND(monthlyBudget)}`;
+            
+            const percent = Math.min(100, Math.round((thisMonthExpense / monthlyBudget) * 100));
+            const progressBar = document.getElementById('budgetProgressBar');
+            progressBar.style.width = `${percent}%`;
+
+            const statusEl = document.getElementById('budgetStatus');
+            statusEl.textContent = `${percent}% hạn mức tháng này`;
+
+            if (percent >= 100) {
+                progressBar.className = 'h-full bg-rose-500 transition-all duration-500';
+                statusEl.className = 'text-xs font-bold text-rose-500 text-right';
+            } else if (percent >= 85) {
+                progressBar.className = 'h-full bg-amber-500 transition-all duration-500';
+                statusEl.className = 'text-xs font-medium text-amber-500 text-right';
+            } else {
+                progressBar.className = 'h-full bg-indigo-500 transition-all duration-500';
+                statusEl.className = 'text-xs font-medium text-slate-500 dark:text-slate-400 text-right';
+            }
+        }
+
+        // Render Table Rows
+        function renderTransactionTable(list) {
+            const tbody = document.getElementById('transactionList');
+            const emptyState = document.getElementById('emptyState');
+
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Sort by date descending
+            const sortedList = [...list].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedList.forEach(item => {
+                const cat = getCategoryInfo(item.category);
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors';
+
+                const isIncome = item.type === 'income';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isIncome ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400'}">
+                            <i class="fa-solid ${isIncome ? 'fa-arrow-down' : 'fa-arrow-up'} text-[10px]"></i>
+                            ${isIncome ? 'Thu nhập' : 'Chi tiêu'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-medium text-slate-700 dark:text-slate-200">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs text-white" style="background-color: ${cat.color}">
+                                <i class="fa-solid ${cat.icon}"></i>
+                            </span>
+                            ${cat.name}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                        ${item.note || '<span class="text-slate-300 dark:text-slate-600 italic">Không có ghi chú</span>'}
+                    </td>
+                    <td class="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        ${formatDisplayDate(item.date)}
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">
+                        ${isIncome ? '+' : '-'}${formatVND(item.amount)}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="confirmDeleteTransaction('${item.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" title="Xóa giao dịch">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        // Render Chart.js Visualizations
+        function renderCharts(listData) {
+            const dataToUse = listData || getFilteredTransactions();
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            // 1. Doughnut Chart (Expenses by Category)
+            const expenseItems = dataToUse.filter(t => t.type === 'expense');
+            const catTotals = {};
+
+            expenseItems.forEach(t => {
+                catTotals[t.category] = (catTotals[t.category] || 0) + parseFloat(t.amount);
+            });
+
+            const catLabels = [];
+            const catAmounts = [];
+            const catColors = [];
+
+            Object.keys(catTotals).forEach(catId => {
+                const catInfo = getCategoryInfo(catId);
+                catLabels.push(catInfo.name);
+                catAmounts.push(catTotals[catId]);
+                catColors.push(catInfo.color);
+            });
+
+            const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChart) categoryChart.destroy();
+
+            if (catAmounts.length === 0) {
+                // Empty state donut chart
+                categoryChart = new Chart(ctxCategory, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Chưa có chi tiêu'],
+                        datasets: [{ data: [1], backgroundColor: [isDark ? '#334155' : '#e2e8f0'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            } else {
+                categoryChart = new Chart(ctxCategory, {
+                    type: 'doughnut',
+                    data: {
+                        labels: catLabels,
+                        datasets: [{
+                            data: catAmounts,
+                            backgroundColor: catColors,
+                            borderWidth: 2,
+                            borderColor: isDark ? '#1e293b' : '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: textColor, font: { family: 'Be Vietnam Pro', size: 11 } }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.label}: ${formatVND(context.raw)}`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '65%'
+                    }
+                });
+            }
+
+            // 2. Trend Bar Chart (Income vs Expense)
+            const totalInc = dataToUse.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalExp = dataToUse.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+
+            trendChart = new Chart(ctxTrend, {
+                type: 'bar',
+                data: {
+                    labels: ['Tổng Thu (Đầu vào)', 'Tổng Chi (Đầu ra)'],
+                    datasets: [{
+                        label: 'Số tiền (VNĐ)',
+                        data: [totalInc, totalExp],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderRadius: 8,
+                        barThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Số tiền: ${formatVND(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                color: textColor,
+                                font: { family: 'Be Vietnam Pro', size: 10 },
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000) + ' Tr';
+                                    if (value >= 1000) return (value / 1000) + ' k';
+                                    return value;
+                                }
+                            },
+                            grid: { color: isDark ? '#334155' : '#f1f5f9' }
+                        },
+                        x: {
+                            ticks: { color: textColor, font: { family: 'Be Vietnam Pro', size: 11 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Add new Transaction
+        function handleAddTransaction(e) {
+            e.preventDefault();
+
+            const amount = parseFloat(document.getElementById('transAmount').value);
+            const date = document.getElementById('transDate').value;
+            const category = document.getElementById('transCategory').value;
+            const note = document.getElementById('transNote').value.trim();
+            const type = document.getElementById('transType').value;
+
+            if (!amount || amount <= 0 || !date || !category) {
+                showModal('Lỗi', '<p class="text-rose-500">Vui lòng điền đầy đủ và chính xác các thông tin bắt buộc.</p>');
+                return;
+            }
+
+            const newTrans = {
+                id: Date.now().toString(),
+                type,
+                amount,
+                category,
+                note,
+                date
+            };
+
+            transactions.unshift(newTrans);
+            saveData();
+            renderApp();
+
+            // Reset Form fields except date
+            document.getElementById('transAmount').value = '';
+            document.getElementById('transNote').value = '';
+            
+            showModal('Thành công', '<p class="text-emerald-600 font-medium"><i class="fa-solid fa-circle-check"></i> Đã thêm giao dịch thành công!</p>', [
+                { text: 'Đóng', primary: true, action: closeModal }
+            ]);
+        }
+
+        // Confirm Delete
+        function confirmDeleteTransaction(id) {
+            showModal('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa giao dịch này không?', [
+                { text: 'Hủy', primary: false, action: closeModal },
+                { text: 'Xóa ngay', primary: true, isDanger: true, action: () => {
+                    transactions = transactions.filter(t => t.id !== id);
+                    saveData();
+                    renderApp();
+                    closeModal();
+                }}
+            ]);
+        }
+
+        // Prompt edit Monthly Budget
+        function promptEditBudget() {
+            const bodyHtml = `
+                <p class="mb-2">Nhập hạn mức chi tiêu cố định mỗi tháng của bạn (VNĐ):</p>
+                <input type="number" id="budgetInputModal" value="${monthlyBudget}" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+            `;
+
+            showModal('Cấu hình Hạn Mức Tháng', bodyHtml, [
+                { text: 'Hủy', primary: false, action: closeModal },
+                { text: 'Cập nhật', primary: true, action: () => {
+                    const val = parseFloat(document.getElementById('budgetInputModal').value);
+                    if (val && val > 0) {
+                        monthlyBudget = val;
+                        localStorage.setItem('smart_money_budget', val);
+                        renderApp();
+                        closeModal();
+                    }
+                }}
+            ]);
+        }
+
+        // Save state to Local Storage
+        function saveData() {
+            localStorage.setItem('smart_money_trans', JSON.stringify(transactions));
+        }
+
+        // Export data JSON
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `SmartMoney_Backup_${getFormattedDate(0)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Import data JSON
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        transactions = imported;
+                        saveData();
+                        renderApp();
+                        showModal('Thành công', '<p class="text-emerald-600">Đã phục hồi dữ liệu thành công!</p>');
+                    } else {
+                        throw new Error('Định dạng không hợp lệ');
+                    }
+                } catch (err) {
+                    showModal('Lỗi', '<p class="text-rose-500">Tệp tin tải lên không hợp lệ hoặc bị lỗi cấu trúc.</p>');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Reset Data
+        function resetData() {
+            showModal('Khôi phục mặc định', 'Hành động này sẽ xóa tất cả giao dịch hiện tại và khôi phục dữ liệu mẫu ban đầu. Bạn có muốn tiếp tục?', [
+                { text: 'Hủy', primary: false, action: closeModal },
+                { text: 'Khôi phục', primary: true, isDanger: true, action: () => {
+                    transactions = INITIAL_TRANSACTIONS;
+                    monthlyBudget = 10000000;
+                    saveData();
+                    localStorage.setItem('smart_money_budget', monthlyBudget);
+                    renderApp();
+                    closeModal();
+                }}
+            ]);
+        }
+
+        // Custom Modal Utility (Replaces alert/confirm)
+        function showModal(title, bodyHtml, buttons = [{ text: 'Đóng', primary: true, action: closeModal }]) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+
+            const actionsContainer = document.getElementById('modalActions');
+            actionsContainer.innerHTML = '';
+
+            buttons.forEach(btn => {
+                const button = document.createElement('button');
+                button.textContent = btn.text;
+                
+                let btnClass = 'px-4 py-2 text-xs font-semibold rounded-xl transition-all ';
+                if (btn.isDanger) {
+                    btnClass += 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm';
+                } else if (btn.primary) {
+                    btnClass += 'bg-sky-600 hover:bg-sky-700 text-white shadow-sm';
+                } else {
+                    btnClass += 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600';
+                }
+
+                button.className = btnClass;
+                button.onclick = btn.action || closeModal;
+                actionsContainer.appendChild(button);
+            });
+
+            const modal = document.getElementById('customModal');
+            const container = document.getElementById('modalContainer');
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                container.classList.remove('scale-95');
+                container.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('customModal');
+            const container = document.getElementById('modalContainer');
+
+            container.classList.remove('scale-100');
+            container.classList.add('scale-95');
+            modal.classList.add('opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+    </script>
+</body>
+</html>
